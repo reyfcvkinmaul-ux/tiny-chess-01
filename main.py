@@ -1,8 +1,13 @@
-import os,json,urllib.request,urllib.error
+import os,json,time,urllib.request,urllib.error
 U=os.environ['MAKEFUN_ENV_URL'];V={'p':100,'n':320,'b':330,'r':500,'q':900,'k':0};D=[(1,0),(-1,0),(0,1),(0,-1),(1,1),(1,-1),(-1,1),(-1,-1)];K=[(1,0),(-1,0),(0,1),(0,-1),(1,1),(1,-1),(-1,1),(-1,-1)];N=[(1,2),(2,1),(-1,2),(-2,1),(1,-2),(2,-1),(-1,-2),(-2,-1)]
 def post(p,x):
  req=urllib.request.Request(U+p,data=json.dumps(x).encode(),headers={'content-type':'application/json'})
- with urllib.request.urlopen(req,timeout=20) as r:return json.load(r)
+ for i in range(3):
+  try:
+   with urllib.request.urlopen(req,timeout=20) as r:return json.load(r)
+  except (urllib.error.URLError,TimeoutError):
+   if i==2:raise
+   time.sleep(2**i)
 def parse(f):
  a=[];q=f.split()[0]
  for y,row in enumerate(q.split('/')):
@@ -81,9 +86,14 @@ def go(b,w,d,al=-10**9,be=10**9):
   al=max(al,v)
   if al>=be:break
  return best,bm
+def fallback(b,ms):
+ def value(m):
+  try:return (V.get(b[sq(m[2:4])].lower(),0),len(m)>4)
+  except (IndexError,ValueError):return (0,False)
+ return max(ms,key=value) if ms else ''
 def choose(g):
  b=fenboard(g['fen']);w=g['fen'].split()[1]=='w';z=legal(b,w)
- if not z:return g['legal_moves'][0]
+ if not z:return fallback(b,g['legal_moves'])
  best=(-10**9,z[0])
  for t in z:
   a,c,p=t;o=b[c];b[c]=b[a];b[a]=' '
