@@ -1,7 +1,8 @@
 import os,json,urllib.request,urllib.error
 U=os.environ['MAKEFUN_ENV_URL'];V={'p':100,'n':320,'b':330,'r':500,'q':900,'k':0};D=[(1,0),(-1,0),(0,1),(0,-1),(1,1),(1,-1),(-1,1),(-1,-1)];K=[(1,0),(-1,0),(0,1),(0,-1),(1,1),(1,-1),(-1,1),(-1,-1)];N=[(1,2),(2,1),(-1,2),(-2,1),(1,-2),(2,-1),(-1,-2),(-2,-1)]
 def post(p,x):
- r=urllib.request.urlopen(urllib.request.Request(U+p,data=json.dumps(x).encode(),headers={'content-type':'application/json'}));return json.load(r)
+ req=urllib.request.Request(U+p,data=json.dumps(x).encode(),headers={'content-type':'application/json'})
+ with urllib.request.urlopen(req,timeout=20) as r:return json.load(r)
 def parse(f):
  a=[];q=f.split()[0]
  for y,row in enumerate(q.split('/')):
@@ -81,7 +82,9 @@ def go(b,w,d,al=-10**9,be=10**9):
   if al>=be:break
  return best,bm
 def choose(g):
- b=fenboard(g['fen']);w=g['fen'].split()[1]=='w';z=legal(b,w);best=(-10**9,z[0])
+ b=fenboard(g['fen']);w=g['fen'].split()[1]=='w';z=legal(b,w)
+ if not z:return g['legal_moves'][0]
+ best=(-10**9,z[0])
  for t in z:
   a,c,p=t;o=b[c];b[c]=b[a];b[a]=' '
   if p:b[c]=p.upper() if w else p
