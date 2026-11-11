@@ -1,13 +1,15 @@
 import os,json,time,urllib.request,urllib.error
 U=os.environ['MAKEFUN_ENV_URL'];V={'p':100,'n':320,'b':330,'r':500,'q':900,'k':0};D=[(1,0),(-1,0),(0,1),(0,-1),(1,1),(1,-1),(-1,1),(-1,-1)];K=[(1,0),(-1,0),(0,1),(0,-1),(1,1),(1,-1),(-1,1),(-1,-1)];N=[(1,2),(2,1),(-1,2),(-2,1),(1,-2),(2,-1),(-1,-2),(-2,-1)]
 def post(p,x):
- req=urllib.request.Request(U+p,data=json.dumps(x).encode(),headers={'content-type':'application/json'})
  for i in range(3):
+  req=urllib.request.Request(U+p,data=json.dumps(x).encode(),headers={'content-type':'application/json'})
   try:
-   with urllib.request.urlopen(req,timeout=20) as r:return json.load(r)
-  except (urllib.error.URLError,TimeoutError):
-   if i==2:raise
-   time.sleep(2**i)
+   with urllib.request.urlopen(req,timeout=10+5*i) as r:return json.load(r)
+  except urllib.error.HTTPError as e:
+   if e.code<500:raise
+  except (urllib.error.URLError,TimeoutError,json.JSONDecodeError):pass
+  if i<2:time.sleep(2**i)
+ raise RuntimeError('HTTP request failed')
 def parse(f):
  a=[];q=f.split()[0]
  for y,row in enumerate(q.split('/')):
@@ -88,9 +90,10 @@ def go(b,w,d,al=-10**9,be=10**9):
  return best,bm
 def fallback(b,ms):
  def value(m):
-  try:return (V.get(b[sq(m[2:4])].lower(),0),len(m)>4)
-  except (IndexError,ValueError):return (0,False)
- return max(ms,key=value) if ms else ''
+  try:
+   t=sq(m[2:4]);return (b[t]!=' ' and b[t].isupper()!=b[sq(m[:2])].isupper(),V.get(b[t].lower(),0),len(m)>4)
+  except (IndexError,ValueError):return (False,0,False)
+ return max((m for m in ms if len(m)>=4),key=value,default=ms[0] if ms else '')
 def choose(g):
  b=fenboard(g['fen']);w=g['fen'].split()[1]=='w';z=legal(b,w)
  if not z:return fallback(b,g['legal_moves'])
